@@ -1,3 +1,4 @@
+pip install -U langchain-community
 pip install llama-index-embeddings-huggingface 
 pip install llama-index  diffusers transformers torch  llama-index-embeddings-huggingface  
 llama-index-embeddings-ollama  
@@ -14,8 +15,5 @@ pip install --use-pep517 dotenv
 pip install langchain-experimental
 pip install graphdatascience
 pip install FlagEmbedding
-peft
+pip install peft
 pip install llama-index-llms-openai
-
-git config user.name 你的github用户名
-git config user.email 邮箱地址

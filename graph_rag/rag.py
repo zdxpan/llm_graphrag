@@ -14,6 +14,11 @@ from graph_rag.entities import Entities
 from langchain_core.documents import Document
 from llama_index.core.retrievers import VectorIndexRetriever # need llm
 
+from typing import List
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.pydantic_v1 import BaseModel, Field
+
 from FlagEmbedding import FlagReranker
 from FlagEmbedding import BGEM3FlagModel
 
@@ -143,6 +148,31 @@ class GraphRAG():
         # entity_extract_chain2 = prompt | self.llm.with_structured_output(Entities)
         return entity_extract_chain
 
+    def create_entity_extract_chain_2(self):
+        """
+        Creates a chain which will extract entities from the question posed by the user. 
+        This allows us to search the graph for nodes which correspond to entities more efficiently
+
+        Returns:
+            Runnable: Runnable chain which uses the LLM to extract entities from the users question
+        """
+        parser = PydanticOutputParser(pydantic_object=Entities)
+        # Prompt
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system",
+                    "回答用户的问题. 将输出包装为 `json` 格式\n{format_instructions}",
+                ),
+                ("human", "{question}"),
+            ]
+        ).partial(format_instructions=parser.get_format_instructions())
+
+        # print(prompt.invoke(query).to_string())
+
+        entity_extract_chain = prompt | self.llm | parser
+        # entity_extract_chain.invoke({"question": query})
+        return entity_extract_chain
+
     def generate_full_text_query(self, input_query: str) -> str:
         """
         Generate a full-text search query for a given input string.
@@ -182,7 +212,9 @@ class GraphRAG():
                  context relevant to the users question
         """
 
-        entity_extract_chain = self.create_entity_extract_chain()
+        # entity_extract_chain = self.create_entity_extract_chain()
+        entity_extract_chain = self.create_entity_extract_chain_2()
+        
         result = ""
         entities = entity_extract_chain.invoke({"question": question})
         print('>> 3  entities from create_entity_extract_chain ', entities)
@@ -211,15 +243,6 @@ class GraphRAG():
             print(f'>> according {entities} query from graph get {result}')
         return result
 
-    def vector_retriever(self, top_k=10):
-        return None
-        index = self.index
-        #retriever_query_engine = index.as_query_engine()
-        retriever = VectorIndexRetriever(
-            index=index,  # VectorStoreIndex from documents or from vector_store:[chromdb or other things]
-            similarity_top_k=top_k,
-        )
-        return retriever
 
     def create_vector_index(self) -> Neo4jVector:
         """
