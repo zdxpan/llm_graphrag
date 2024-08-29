@@ -97,7 +97,7 @@ class GraphBuilder():
                 time.sleep(5)
                 return []
             return graph_doc
-        MAX_WORKERS = 2
+        MAX_WORKERS = len(llm_transformer_list)
         progres_inx = 0
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             # Submitting all tasks and creating a list of future objects

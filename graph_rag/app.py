@@ -55,17 +55,27 @@ prompt = ChatPromptTemplate.from_messages(
 
 # Neo4j Client Setup
 # os.environ["OPENAI_API_KEY"] = "sk-"
+RUN_LOCAL = True
 
 # online 
 os.environ["NEO4J_URI"] = "neo4j+s://ce0ac75d.databases.neo4j.io"
 os.environ["NEO4J_USERNAME"] = "neo4j"
 os.environ["NEO4J_PASSWORD"] = "LyuGyjYGDBM66DaKahd4dZNLIubyanxkaO3FLmaCF70"
 os.environ["MOONSHOT_API_KEY"] = "sk-Zw5UirKJBYkwMqdtLfc47HNyrsPmIuOGfY2dX235zmBeFGJq"
+os.environ["MOONSHOT_API_KEY2"] = "sk-wvLQ6IEKrOOeeUP0htYCUucYgFqt1wOhowBmVBmASHDFKSXO"
+os.environ["MOONSHOT_API_KEY3"] = "sk-6XJd9jI3Ou2OE0zlnmcPew1yeh8ZXdK6qFSGUQXdEeVTUSzs"
 os.environ["DASHSCOPE_API_KEY"] = "sk-9701adf350c2443680ba2486a765ba53"
 os.environ["NEO4J_USERNAME"] = 'neo4j'
 os.environ["NEO4J_PASSWORD"] = 'prelude-culture-corner-panel-lava-5546'
 os.environ["NEO4J_URI"] = 'bolt://localhost:7687'
 os.environ["GROQ_API_KEY"] = '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'
+
+if RUN_LOCAL:
+    os.environ["NEO4J_USERNAME"] = 'neo4j'
+    os.environ["NEO4J_PASSWORD"] = 'prelude-culture-corner-panel-lava-5546'
+    # os.environ["NEO4J_URI"] = 'bolt://localhost:7687'
+    # os.environ["NEO4J_URI"] = 'bolt://127.0.0.1:7687'
+    os.environ["NEO4J_URI"] = 'bolt://0.0.0.0:7687'
 
 class myMoonshotChat(MoonshotChat):
     def with_structured_output(self, schema, *, include_raw: bool = False, **kwargs):
@@ -85,13 +95,15 @@ class myMoonshotChat(MoonshotChat):
     
 device = 'mps'
 llm = myMoonshotChat()   # llm = MoonshotChat()
+llm2 =  myMoonshotChat(api_key=os.environ["MOONSHOT_API_KEY2"])
+llm3 =  myMoonshotChat(api_key=os.environ["MOONSHOT_API_KEY3"])
 
 # llm_groq = ChatGroq(temperature=0, model_name="llama3-groq-8b-8192-tool-use-preview") # model_name="mixtral-8x7b-32768")
 # llm = llm_groq
-#from vllm import LLM
-#prompts = ["Hello, my name is", "The capital of France is"]  # Sample prompts.
-#llm = LLM(model="lmsys/vicuna-7b-v1.3")  # Create an LLM.
-#outputs = llm.generate(prompts)  # Generate texts from the prompts.
+# from vllm import LLM
+# prompts = ["Hello, my name is", "The capital of France is"]  # Sample prompts.
+# llm = LLM(model="lmsys/vicuna-7b-v1.3")  # Create an LLM.
+# outputs = llm.generate(prompts)  # Generate texts from the prompts.
 # test with glm GPT4ALL 
 # from gpt4all import GPT4All
 # glm_ = '/Users/zdx/llm/glm-4-9b-chat.Q2_K.gguf'
@@ -102,7 +114,18 @@ llm = myMoonshotChat()   # llm = MoonshotChat()
 # llm  = ChatOpenAI(api_key=os.environ["MOONSHOT_API_KEY"],base_url="http://127.0.0.1:8000/v1")
 # Tool choice {'type': 'function', 'function': {'name': 'any'}} was specified, but the only provided tool was Entities.
 # chain_test =  prompt | llm.with_structured_output(Entities)  # no surpport!!!   Tool choice {'type': 'function', 'function': {'name': 'any'}} was specified, but the only provided tool was Entities.
-
+# llm = HuggingFacePipeline.from_model_id(
+#     model_id="/nvme0/Qwen2-7B-Instruct/",
+#     task="text-generation",
+#     device=0,  # -1 for CPU
+#     model_kwargs={"temperature": 0, "max_length": 512},
+#     # model_kwargs={"temperature": 0, "quantization_config": quantization_config},  # add quntinize!!!
+#     pipeline_kwargs=dict(
+#         max_new_tokens=512,
+#         do_sample=False,
+#         repetition_penalty=1.03,
+#     ),
+# )
 
 st.set_page_config(page_title="灵起 & 瑞泰 RAG 私有化部署大模型", layout="wide")
 
@@ -139,7 +162,7 @@ def load_model():
     vector_index = vector_index.as_retriever(search_kwargs={'k': 6})
     return graph, reranker, huggingface_embeddings,  vector_index
 
-llms = [llm, llm]
+llms = [llm, llm2, llm3]
 graph, reranker, huggingface_embeddings,  vector_index = load_model()
 
 
@@ -309,7 +332,7 @@ def init_ui():
                 else:
                     raise TypeError('not surpport file type')
 
-                graph_builder = GraphBuilder(llm=llm, llms=groq_llms)
+                graph_builder = GraphBuilder(llm=llm, llms=llms)
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 text_chunks = graph_builder.chunk_document_text(rag_documents, chunk_size=800, chunk_overlap=100)
