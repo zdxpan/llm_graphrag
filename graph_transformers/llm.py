@@ -1,7 +1,7 @@
 import asyncio
 import json
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union, cast
-
+import copy
 from langchain_community.graphs.graph_document import GraphDocument, Node, Relationship
 from langchain_core.documents import Document
 from langchain_core.language_models import BaseLanguageModel
@@ -205,17 +205,17 @@ def _get_additional_info(input_type: str) -> str:
 #         "然而，不要为了普遍性而牺牲准确性"
 #     )
     # Perform actions based on the input_type
-    if input_type == "node" or  input_type == "节点":
+    if input_type == "node":
         return (
             "确保你使用基础或初级类型作为节点标签。\n"
             "例如，当你识别出一个代表个人的实体时，总是将其标记为 **人**。避免使用更具体的术语"
             "如数学家或科学家"
         )
-    elif input_type == "relationship" or input_type == "关系":
+    elif input_type == "relationship":
         return (
             "不要使用特定和临时的类型，如成为教授，而应使用更普遍和持久的关系类型，如教授。不要为了普遍性而牺牲准确性"
         )
-    elif input_type == "property" or input_type == "属性":
+    elif input_type == "property":
         return ""
     return ""
 
@@ -257,8 +257,7 @@ class UnstructuredRelation(BaseModel):
         description=(
             # "extracted head entity like Microsoft, Apple, John. "
             # "Must use human-readable unique identifier."
-            "提取的头部实体，例如微软、苹果、约翰。"
-            "必须使用人类可读的唯一标识符。"
+            "提取的头部实体，例如微软、苹果、约翰。必须使用人类可读的唯一标识符。"
         )
     )
     head_type: str = Field(
@@ -279,29 +278,9 @@ class UnstructuredRelation(BaseModel):
     )
     tail_type: str = Field(
         # description="type of the extracted tail entity like Person, Company, etc"
-        description="尾部实体的类型，例如个人、公司等。"
+        description="提取的尾部实体的类型，例如个人、公司等。"
     )
-    
-class UnstructuredRelation(BaseModel):
-    head: str = Field(
-        description=(
-            "提取的头部实体，如微软、苹果、约翰。"
-            "必须使用人类可读的唯一标识符。"
-        )
-    )
-    head_type: str = Field(
-        description="提取的头部实体的类型，如个人、公司等"
-    )
-    relation: str = Field(description="头部实体和尾部实体之间的关系")
-    tail: str = Field(
-        description=(
-            "提取的尾部实体，如微软、苹果、约翰。"
-            "必须使用人类可读的唯一标识符。"
-        )
-    )
-    tail_type: str = Field(
-        description="提取的尾部实体的类型，如个人、公司等"
-    )
+
 
 def create_unstructured_prompt(
     node_labels: Optional[List[str]] = None, rel_types: Optional[List[str]] = None
@@ -493,7 +472,7 @@ def create_simple_model(
             Field(
                 ...,
                 # description="Name or human-readable unique identifier of source node",
-                Field(..., description="源节点的名称或人类可读的唯一标识符。"),
+                description="源节点的名称或人类可读的唯一标识符。"
             ),
         ),
         "source_node_type": (
@@ -511,7 +490,7 @@ def create_simple_model(
             Field(
                 ...,
                 # description="Name or human-readable unique identifier of target node",
-                Field(..., description="目标节点的名称或人类可读的唯一标识符。"),
+                description="目标节点的名称或人类可读的唯一标识符。",
             ),
         ),
         "target_node_type": (
@@ -856,7 +835,7 @@ class LLMGraphTransformer:
         an LLM based on the model's schema and constraints.
         """
         text = document.page_content
-        raw_schema = self.chain.invoke({"input": text}, config=config)
+        raw_schema = self.chain.invoke({"input": text}, config=config) # raw_schema tokenusage {'completion_tokens': 1024, 'prompt_tokens': 2170, 'total_tokens': 3194}
         if self._function_call:
             raw_schema = cast(Dict[Any, Any], raw_schema)
             nodes, relationships = _convert_to_graph_document(raw_schema)
@@ -866,17 +845,25 @@ class LLMGraphTransformer:
             if not isinstance(raw_schema, str):
                 raw_schema = raw_schema.content
             parsed_json = self.json_repair.loads(raw_schema)
+            if not isinstance(parsed_json, list):
+                parsed_json = [parsed_json]
             for rel in parsed_json:
                 # Ensure that 'head_type' and 'tail_type' keys exist
-                node_keys = ['head', 'head_type', 'tail', 'tail_type']
+                node_keys = ['head', 'head_type', 'tail', 'tail_type', 'relation']
                 is_bad_relationship = False
                 for node_key in node_keys:
                     if node_key not in rel:
-                        print(f"Missing key '{node_key}' in relationship: {rel}")
+                        # print(f">> Missing key '{node_key}' in relationship: {rel}")
                         is_bad_relationship = True
-                if is_bad_relationship:
-                    continue
+
                 # Nodes need to be deduplicated using a set
+                # if 'head' in rel and 'head_type' in rel:
+                # if 'tail' in rel and 'tail_type' in rel:
+                
+                if is_bad_relationship:
+                    print(f'## warning the parsed_json is {parsed_json} \n ##--> bad relation is {rel}')
+                    continue
+
                 nodes_set.add((rel["head"], rel["head_type"]))
                 nodes_set.add((rel["tail"], rel["tail_type"]))
 
@@ -889,6 +876,8 @@ class LLMGraphTransformer:
                 )
             # Create nodes list
             nodes = [Node(id=el[0], type=el[1]) for el in list(nodes_set)]
+        nodes_bk = copy.deepcopy(nodes)
+        relationships_bk = copy.deepcopy(relationships)
 
         # Strict mode filtering
         if self.strict_mode and (self.allowed_nodes or self.allowed_relationships):

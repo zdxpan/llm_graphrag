@@ -37,20 +37,7 @@ from typing import List
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-from graph_rag.entities import Entities
-prompt = ChatPromptTemplate.from_messages(
-    [ (
-            "system", "You are extracting objects, person, organization, " +
-            # "or business entities from the text.",
-            "authors, keywords, title, abstract, institutions, citations, references," +
-            "figures_tables, data, methods, results, discussion, conclusion, funding, classification_codes, proper_nouns, locations, time," +
-            "laws_regulations, technical_terms, products_brands, species_taxonomy, codes_algorithms, statistical_indicators, research_topics, " + 
-            "or business entities that appear in the text"
-        ),
-        (   "human", "Use the given format to extract information from the following "
-            "input: {question}",
-        ),
-    ])
+from graph_rag.entities import Entities, extract_entity_prompt, entity_nodes
 
 # Neo4j Client Setup
 # os.environ["OPENAI_API_KEY"] = "sk-"
@@ -112,7 +99,6 @@ llm3 =  myMoonshotChat(api_key=os.environ["MOONSHOT_API_KEY3"])
 # chatglm.cpp run as fellow ERROR!
 # llm  = ChatOpenAI(api_key=os.environ["MOONSHOT_API_KEY"],base_url="http://127.0.0.1:8000/v1")
 # Tool choice {'type': 'function', 'function': {'name': 'any'}} was specified, but the only provided tool was Entities.
-# chain_test =  prompt | llm.with_structured_output(Entities)  # no surpport!!!   Tool choice {'type': 'function', 'function': {'name': 'any'}} was specified, but the only provided tool was Entities.
 # llm = HuggingFacePipeline.from_model_id(
 #     model_id="/nvme0/Qwen2-7B-Instruct/",
 #     task="text-generation",

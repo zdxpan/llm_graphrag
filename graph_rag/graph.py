@@ -107,6 +107,7 @@ class GraphBuilder():
             try:
                 graph_doc = llm_transformer_.convert_to_graph_documents([doc_item])
             except Exception as e:
+                print('>> ERROR exception on convert_to_graph_documents\n', e)
                 time.sleep(5)
                 return []
             return graph_doc

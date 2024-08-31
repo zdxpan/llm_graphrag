@@ -1,4 +1,5 @@
 from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.prompts import ChatPromptTemplate
 from typing import List
 
 class Entities(BaseModel):
@@ -36,6 +37,26 @@ entity_nodes = [
 NODE_LIST = ["物体","个人","组织","作者","关键词","标题","摘要","机构","引用","参考文献","图表","数据",
             "方法","结果","讨论","结论","资助","分类代码","专有名词","地点","时间","法律规章","技术术语",
             "产品品牌","物种分类","代码算法","统计指标","研究主题","商业实体"]
+
+extract_entity_prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            # "You are extracting objects, person, organization, " +
+            # "or business entities from the text.",
+            # "你正在从文本中提取物体、个人、组织、作者、关键词、标题、摘要、机构、引用、参考文献、
+            # 图表、数据、方法、结果、讨论、结论、资助、分类代码、专有名词、地点、时间、法律规章、
+            # 技术术语、产品品牌、物种分类、代码算法、统计指标、研究主题或商业实体。",
+            f"你正在从文本中提取{'、'.join(entity_nodes)}等实体。",
+        ),
+        (
+            "human",
+            # "Use the given format to extract information from the following "
+            "请使用给定的格式从以下输入中提取信息："
+            "input: {question}",
+        ),
+    ]
+)
 
 # "authors, keywords, title, abstract, institutions, citations, references, figures_tables, data, methods, results, discussion, conclusion, funding, classification_codes, proper_nouns, locations, time, laws_regulations, technical_terms, products_brands, species_taxonomy, codes_algorithms, statistical_indicators, research_topics"
     # authors: List[str] = Field(

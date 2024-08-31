@@ -16,7 +16,6 @@ from llama_index.core.retrievers import VectorIndexRetriever # need llm
 
 from typing import List
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from graph_rag.entities import NODE_LIST as entity_nodes
 
@@ -134,12 +133,17 @@ class GraphRAG():
             [
                 (
                     "system",
-                    "You are extracting objects, person, organization, " +
-                    "or business entities from the text.",
+                    # "You are extracting objects, person, organization, " +
+                    # "or business entities from the text.",
+                    # "你正在从文本中提取物体、个人、组织、作者、关键词、标题、摘要、机构、引用、参考文献、
+                    # 图表、数据、方法、结果、讨论、结论、资助、分类代码、专有名词、地点、时间、法律规章、
+                    # 技术术语、产品品牌、物种分类、代码算法、统计指标、研究主题或商业实体。",
+                    f"你正在从文本中提取{'、'.join(entity_nodes)}等实体。",
                 ),
                 (
                     "human",
-                    "Use the given format to extract information from the following "
+                    # "Use the given format to extract information from the following "
+                    "请使用给定的格式从以下输入中提取信息："
                     "input: {question}",
                 ),
             ]
@@ -213,8 +217,8 @@ class GraphRAG():
                  context relevant to the users question
         """
 
-        # entity_extract_chain = self.create_entity_extract_chain()
-        entity_extract_chain = self.create_entity_extract_chain_2()
+        entity_extract_chain = self.create_entity_extract_chain()
+        # entity_extract_chain = self.create_entity_extract_chain_2()
         
         result = ""
         entities = entity_extract_chain.invoke({"question": question})
