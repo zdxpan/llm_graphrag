@@ -18,6 +18,7 @@ from typing import List
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
+from graph_rag.entities import NODE_LIST as entity_nodes
 
 from FlagEmbedding import FlagReranker
 from FlagEmbedding import BGEM3FlagModel
@@ -219,7 +220,6 @@ class GraphRAG():
         entities = entity_extract_chain.invoke({"question": question})
         print('>> 3  entities from create_entity_extract_chain ', entities)
         if entities is None:
-            entities = Entities(names=["刘皇叔", '桃源结义', '曹操', '黄巾军'])
             return result
         for entity in entities.names:
             response = self.graph.query(

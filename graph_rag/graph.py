@@ -6,12 +6,14 @@ Neo4j from unstructured text
 import os
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Iterator, Optional, Union
+from typing import List, Iterator, Optional, Union, Any, Dict, List, cast
 import tqdm
 from langchain.text_splitter import TokenTextSplitter
 from langchain_community.document_loaders import WikipediaLoader, YoutubeLoader, TextLoader
 from langchain_community.graphs import Neo4jGraph
-from langchain_experimental.graph_transformers import LLMGraphTransformer
+# from langchain_experimental.graph_transformers import LLMGraphTransformer
+from  graph_transformers import LLMGraphTransformer
+from langchain_core.runnables import RunnableConfig
 from langchain_community.graphs.graph_document import GraphDocument, Node, Relationship
 from langchain_openai import ChatOpenAI
 # 嵌入来根据其余弦距离找到相似的潜在候选者。我们将使用Graph Data Science (GDS)库中可用的图算法
@@ -34,6 +36,17 @@ logger = logging.getLogger(__name__)
 # )
 
 # https://github.com/rahulnyk/graph_maker  #这里有一个知识图谱提取工具
+entity_nodes = [
+    'objects', 'person', 'organization', 'business', 'authors', 'keywords', 'title', 'abstract', 'institutions', 'citations', 'references', 
+    'figures_tables', 'data', 'methods', 'results', 'discussion', 'conclusion', 'funding', 'classification_codes', 'proper_nouns', 'locations', 'time',
+    'laws_regulations', 'technical_terms', 'products_brands', 'species_taxonomy', 'codes_algorithms', 'statistical_indicators', 'research_topics',
+]
+entity_nodes = [
+    '物体', '个人', '组织', '商业机构', '作者', '关键词', '标题', '摘要', '机构', '引用', '参考文献',
+    '图表', '数据', '方法', '结果', '讨论', '结论', '资助', '分类代码', '专有名词', '地点', '时间',
+    '法律规章', '技术术语', '产品品牌', '物种分类', '代码算法', '统计指标', '研究主题',
+]
+from graph_rag.entities import NODE_LIST as entity_nodes
 
 class GraphBuilder():
     """
@@ -85,7 +98,7 @@ class GraphBuilder():
                             # allowed_nodes=["Person", "Organization", "Company", "Award", "Product", "Characteristic"],
                             # allowed_relationships=["WORKS_FOR", "HAS_AWARD", "PRODUCED_BY", "HAS_CHARACTERISTIC"]
                                             )
-        llm_transformer_list = [LLMGraphTransformer(llm=lm_ ) for lm_ in self.llms]
+        llm_transformer_list = [LLMGraphTransformer(llm=lm_, allowed_nodes=entity_nodes ) for lm_ in self.llms]
         total_num = len(text_chunks)
         graph_documents = []
         print(f'>>> convert_to_graph_documents had {total_num}')

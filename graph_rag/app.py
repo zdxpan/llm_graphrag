@@ -39,19 +39,18 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from graph_rag.entities import Entities
 prompt = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            "You are extracting objects, person, organization, " +
-            "or business entities from the text.",
+    [ (
+            "system", "You are extracting objects, person, organization, " +
+            # "or business entities from the text.",
+            "authors, keywords, title, abstract, institutions, citations, references," +
+            "figures_tables, data, methods, results, discussion, conclusion, funding, classification_codes, proper_nouns, locations, time," +
+            "laws_regulations, technical_terms, products_brands, species_taxonomy, codes_algorithms, statistical_indicators, research_topics, " + 
+            "or business entities that appear in the text"
         ),
-        (
-            "human",
-            "Use the given format to extract information from the following "
+        (   "human", "Use the given format to extract information from the following "
             "input: {question}",
         ),
-    ]
-)
+    ])
 
 # Neo4j Client Setup
 # os.environ["OPENAI_API_KEY"] = "sk-"
@@ -320,7 +319,6 @@ def init_ui():
                 # build vector
                 # if f"{rag_name}_uploaded" not in st.session_state:
                 if 'text/plain' in file_type: # text/plain
-                    # reader = myTextLoader(rag_name)#.read_from_object(uploaded_file)
                     # rag_documents: List[Document] = reader.read_from_object(uploaded_file)
                     rag_documents = TextLoader(file_path).load()
                 elif 'pdf' in file_type:
@@ -335,7 +333,7 @@ def init_ui():
                 graph_builder = GraphBuilder(llm=llm, llms=llms)
                 progress_bar = st.progress(0)
                 status_text = st.empty()
-                text_chunks = graph_builder.chunk_document_text(rag_documents, chunk_size=800, chunk_overlap=100)
+                text_chunks = graph_builder.chunk_document_text(rag_documents, chunk_size=700, chunk_overlap=80)
                 # index = VectorStoreIndex.from_documents(text_chunks)  # optimize use GPU  # need a llm
                 if text_chunks is not None:
                     graph_builder.graph_document_text(text_chunks=text_chunks, progress_bar = progress_bar)
@@ -368,10 +366,12 @@ def init_ui():
             #     graph_content(progress_bar, status_text)
             pass
 
-        with col2:
-            pass
-            # if st.button("Reset Graph"):
-            #     reset_graph()
+        # with col2:
+        user_input = st.text_input("确认重置知识库y or n:", "")
+        if st.button("Reset Graph") and user_input == "yes123":
+            print('>> reset_graph databases!!!')
+            reset_graph()
+
 
 if __name__ == "__main__":
 
