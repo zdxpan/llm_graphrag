@@ -5,7 +5,7 @@ import os
 import sys
 import dotenv
 dotenv.load_dotenv(dotenv_path = '/Users/zdx/llm/.env')
-
+os.chdir('/Users/zdx/llm/graphrag_lang_neo4j')
 sys.path.append('/Users/zdx/llm/graphrag_lang_neo4j')
 
 import streamlit as st
@@ -35,6 +35,7 @@ from llama_index.core import Settings
 
 from typing import List
 from langchain_core.output_parsers import PydanticOutputParser
+from graph_transformers.pandytic_output_parser import  myPydanticOutputParser   # used for parse Graph kg
 from langchain_core.prompts import ChatPromptTemplate
 
 from graph_rag.entities import Entities, extract_entity_prompt, entity_nodes
@@ -63,6 +64,9 @@ if RUN_LOCAL:
     # os.environ["NEO4J_URI"] = 'bolt://127.0.0.1:7687'
     os.environ["NEO4J_URI"] = 'bolt://0.0.0.0:7687'
 
+from langchain_groq import ChatGroq
+from graph_rag.entities import graph_prompt_example
+
 class myMoonshotChat(MoonshotChat):
     def with_structured_output(self, schema, *, include_raw: bool = False, **kwargs):
         parser = PydanticOutputParser(pydantic_object=schema)
@@ -78,11 +82,38 @@ class myMoonshotChat(MoonshotChat):
         # print(prompt.invoke(query).to_string())
         chain = prompt | llm | parser
         return chain
-    
+
+# mymoon_llm = myMoonshotChat()
+
+class myMoonshotChat4Graph(MoonshotChat):
+    def with_structured_output(self, schema, *, include_raw: bool = False, **kwargs):
+        parser = myPydanticOutputParser(pydantic_object=schema)
+        required_keys_dc = {  # for knowledge graph extract
+            'relationships': ['source_node_id', 'source_node_type', 'target_node_id', 'target_node_type', 'type'],
+            'nodes':['id', 'type']
+        }
+        parser.insert_schema(schema=required_keys_dc)
+        # parser = PydanticOutputParser(pydantic_object=schema)
+        # Prompt llm.with_structured_output(schema, include_raw=True)
+        old_instruct = parser.get_format_instructions()
+        exampled_instruct = graph_prompt_example + '输出schema如下：' +  old_instruct.split('Here is the output schema:')[1]
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system",
+                    "回答用户的问题. 将输出包装为 `json` 格式\n{format_instructions}",
+                ),
+                ("human", "{query}"),
+            ]
+        ).partial(format_instructions=exampled_instruct if include_raw else '')
+        # print(prompt.invoke(query).to_string())
+        chain = prompt | llm | parser
+        return chain
+
 device = 'mps'
 llm = myMoonshotChat()   # llm = MoonshotChat()
-llm2 =  myMoonshotChat(api_key=os.environ["MOONSHOT_API_KEY2"])
-llm3 =  myMoonshotChat(api_key=os.environ["MOONSHOT_API_KEY3"])
+llm1 = myMoonshotChat4Graph()
+llm2 =  myMoonshotChat4Graph(api_key=os.environ["MOONSHOT_API_KEY2"])
+llm3 =  myMoonshotChat4Graph(api_key=os.environ["MOONSHOT_API_KEY3"])
 
 # llm_groq = ChatGroq(temperature=0, model_name="llama3-groq-8b-8192-tool-use-preview") # model_name="mixtral-8x7b-32768")
 # llm = llm_groq
@@ -147,7 +178,7 @@ def load_model():
     vector_index = vector_index.as_retriever(search_kwargs={'k': 6})
     return graph, reranker, huggingface_embeddings,  vector_index
 
-llms = [llm, llm2, llm3]
+llms = [llm1, llm2, llm3]
 graph, reranker, huggingface_embeddings,  vector_index = load_model()
 
 

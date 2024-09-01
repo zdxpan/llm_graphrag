@@ -58,79 +58,156 @@ extract_entity_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-# "authors, keywords, title, abstract, institutions, citations, references, figures_tables, data, methods, results, discussion, conclusion, funding, classification_codes, proper_nouns, locations, time, laws_regulations, technical_terms, products_brands, species_taxonomy, codes_algorithms, statistical_indicators, research_topics"
-    # authors: List[str] = Field(
-    #     description="The list of authors who contributed to the document."
-    # )
-    # keywords: List[str] = Field(
-    #     description="Keywords that describe the main topics of the document."
-    # )
-    # title: str = Field(
-    #     description="The title of the academic document."
-    # )
-    # abstract: str = Field(
-    #     description="A brief summary of the document's content."
-    # )
-    # institutions: List[str] = Field(
-    #     description="Institutions to which the authors are affiliated."
-    # )
-    # citations: List[str] = Field(
-    #     description="References to other literature cited within the document."
-    # )
-    # references: List[str] = Field(
-    #     description="A list of all the references at the end of the document."
-    # )
-    # figures_tables: List[str] = Field(
-    #     description="Figures, tables, and images included in the document."
-    # )
-    # data: List[str] = Field(
-    #     description="Numerical data or statistical information presented in the document."
-    # )
-    # methods: str = Field(
-    #     description="The methods and techniques used in the research."
-    # )
-    # results: str = Field(
-    #     description="The findings or results obtained from the research."
-    # )
-    # discussion: str = Field(
-    #     description="Analysis and interpretation of the research results."
-    # )
-    # conclusion: str = Field(
-    #     description="The final summary and key takeaways from the research."
-    # )
-    # funding: List[str] = Field(
-    #     description="Sources of funding or grants that supported the research."
-    # )
-    # classification_codes: List[str] = Field(
-    #     description="Classification codes such as library classification or subject field codes."
-    # )
-    # proper_nouns: List[str] = Field(
-    #     description="Specific terms, theories, models, effects, etc., that are proper nouns in the field."
-    # )
-    # locations: List[str] = Field(
-    #     description="Geographical locations relevant to the study or mentioned in case studies."
-    # )
-    # time: List[str] = Field(
-    #     description="Time periods or historical eras relevant to the research."
-    # )
-    # laws_regulations: List[str] = Field(
-    #     description="Laws, regulations, or standards cited in the document."
-    # )
-    # technical_terms: List[str] = Field(
-    #     description="Professional jargon specific to a particular field."
-    # )
-    # products_brands: List[str] = Field(
-    #     description="Products and brands mentioned in the research."
-    # )
-    # species_taxonomy: List[str] = Field(
-    #     description="Names of species and taxonomic classifications used in biological research."
-    # )
-    # codes_algorithms: List[str] = Field(
-    #     description="Code snippets and algorithm names in computer science research."
-    # )
-    # statistical_indicators: List[str] = Field(
-    #     description="Statistical measures used for analysis, such as mean, standard deviation, etc."
-    # )
-    # research_topics: List[str] = Field(
-    #     description="The main research topics or areas of study covered in the document."
-    # )
+graph_example = {
+  "nodes": [
+    {
+      "id": "陶建华",
+      "type": "个人"
+    },
+    {
+      "id": "巫英才",
+      "type": "个人"
+    },
+    {
+      "id": "多模态人机交互综述",
+      "type": "标题"
+    },
+    {
+      "id": "第27卷/第6期/2022年6月",
+      "type": "文献"
+    }
+  ],
+  "relationships": [
+    {
+      "source_node_id": "陶建华",
+      "source_node_type": "个人",
+      "target_node_id": "多模态人机交互综述",
+      "target_node_type": "标题",
+      "type": "作者"
+    },
+    {
+      "source_node_id": "巫英才",
+      "source_node_type": "个人",
+      "target_node_id": "第27卷/第6期/2022年6月",
+      "target_node_type": "文献",
+      "type": "作者"
+    }
+  ]
+}
+
+graph_prompt_example = """
+您需要根据提供的文本提取信息，并将其格式化为符合以下 JSON schema 的 JSON 实例。
+正确的格式化示例：
+{'nodes': [{'id': '陶建华', 'type': '个人'},
+  {'id': '巫英才', 'type': '个人'},
+  {'id': '多模态人机交互综述', 'type': '标题'},
+  {'id': '第27卷/第6期/2022年6月', 'type': '文献'}],
+ 'relationships': [{'source_node_id': '陶建华',
+   'source_node_type': '个人',
+   'target_node_id': '多模态人机交互综述',
+   'target_node_type': '标题',
+   'type': '作者'},
+  {'source_node_id': '巫英才',
+   'source_node_type': '个人',
+   'target_node_id': '第27卷/第6期/2022年6月',
+   'target_node_type': '文献',
+   'type': '作者'}]}
+错误的格式化，放错层级关系，缺少必要的字段，示例：
+ {"properties": {'nodes': [{'id': '陶建华', 'type': '个人'},
+  {'id': '巫英才', 'type': '个人'},
+  {'id': '多模态人机交互综述', 'type': '标题'},
+  {'id': '第27卷/第6期/2022年6月', 'type': '文献'}],
+ 'relationships': 
+  [{'source_node_id': '陶建华',
+   'source_node_type': '个人',
+   'target_node_id': '多模态人机交互综述',
+   'target_node_type': '标题',
+   'type': '作者'}]}}
+,
+{'nodes': [{'id': '陶建华', 'type': '个人'},
+  {'id': '巫英才', 'type': '个人'},
+  {'id': '多模态人机交互综述', 'type': '标题'},
+  {'id': '第27卷/第6期/2022年6月', 'type': '文献'}],
+ 'relationships': [{'source_node_id': '陶建华',
+   'source_node_type': '个人',
+   'target_node_id': '多模态人机交互综述',
+   'target_node_type': '标题',
+   'type': '作者'},
+  {'source_node_id': '巫英才',
+   'source_node_type': '个人',
+   'type': '作者'}]}
+"""
+scheme_prompt = """
+输出的 JSON schema:
+{
+  "properties": {
+    "nodes": {
+      "title": "Nodes",
+      "description": "节点列表",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SimpleNode"
+      }
+    },
+    "relationships": {
+      "title": "Relationships",
+      "description": "关系列表",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SimpleRelationship"
+      }
+    }
+  },
+  "definitions": {
+    "SimpleNode": {
+      "title": "SimpleNode",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "description": "名称或人类可读的唯一标识符。",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "description": "节点的类型或标签。",
+          "type": "string"
+        }
+      },
+      "required": ["id", "type"]
+    },
+    "SimpleRelationship": {
+      "title": "SimpleRelationship",
+      "type": "object",
+      "properties": {
+        "source_node_id": {
+          "title": "Source Node Id",
+          "description": "源节点的名称或人类可读的唯一标识符。",
+          "type": "string"
+        },
+        "source_node_type": {
+          "title": "Source Node Type",
+          "description": "源节点的类型或标签。",
+          "type": "string"
+        },
+        "target_node_id": {
+          "title": "Target Node Id",
+          "description": "目标节点的名称或人类可读的唯一标识符。",
+          "type": "string"
+        },
+        "target_node_type": {
+          "title": "Target Node Type",
+          "description": "目标节点的类型或标签。",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "description": "关系的类型。",
+          "type": "string"
+        }
+      },
+      "required": ["source_node_id", "source_node_type", "target_node_id", "target_node_type", "type"]
+    }
+  }
+}
+"""

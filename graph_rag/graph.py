@@ -94,12 +94,14 @@ class GraphBuilder():
         Args:
             text_chunks (List): List of document chunks
         """
-        llm_transformer = LLMGraphTransformer(llm=self.llm, 
+        llm_transformer = LLMGraphTransformer(llm=self.llms[0], 
+                                              allowed_nodes=entity_nodes
                             # allowed_nodes=["Person", "Organization", "Company", "Award", "Product", "Characteristic"],
                             # allowed_relationships=["WORKS_FOR", "HAS_AWARD", "PRODUCED_BY", "HAS_CHARACTERISTIC"]
                                             )
         llm_transformer_list = [LLMGraphTransformer(llm=lm_, allowed_nodes=entity_nodes ) for lm_ in self.llms]
         total_num = len(text_chunks)
+        total_num = 30
         graph_documents = []
         print(f'>>> convert_to_graph_documents had {total_num}')
         def process_text(llm_transformer_, doc_item) -> List[GraphDocument]:
@@ -113,6 +115,9 @@ class GraphBuilder():
             return graph_doc
         MAX_WORKERS = len(llm_transformer_list)
         progres_inx = 0
+        # for i in range(total_num):
+        #     graph_doc = llm_transformer.convert_to_graph_documents([text_chunks[i]])
+        #     graph_documents.extend(graph_doc)
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             # Submitting all tasks and creating a list of future objects
             futures = [

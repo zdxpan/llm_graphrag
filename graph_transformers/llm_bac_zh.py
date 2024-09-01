@@ -162,7 +162,7 @@ system_prompt = (
     "在知识图谱中始终使用该实体的最完整标识符。在这个例子中，使用约翰·多伊作为实体ID。\n"
     "记住，知识图谱应该是连贯且易于理解的，因此保持实体引用的一致性至关重要。\n"
     "## 4. 严格遵守\n"
-    "严格遵守规则和给定的scheme 格式不缺少字段。不遵守将导致提取知识图谱过程被终止。"
+    "严格遵守规则。不遵守将导致提取知识图谱过程被终止。"
 )
 
 default_prompt = ChatPromptTemplate.from_messages(
@@ -196,20 +196,20 @@ def _get_additional_info(input_type: str) -> str:
     # Perform actions based on the input_type
     if input_type == "node":
         return (
-            # "Ensure you use basic or elementary types for node labels.\n"
-            # "For example, when you identify an entity representing a person, "
-            # "always label it as **'Person'**. Avoid using more specific terms "
-            # "like 'Mathematician' or 'Scientist'"
-            "确保你使用基础或初级类型作为节点标签。\n"
-            "例如，当你识别出一个代表个人的实体时，总是将其标记为 **人**。避免使用更具体的术语"
-            "如数学家或科学家"
+            "Ensure you use basic or elementary types for node labels.\n"
+            "For example, when you identify an entity representing a person, "
+            "always label it as **'Person'**. Avoid using more specific terms "
+            "like 'Mathematician' or 'Scientist'"
+            # "确保你使用基础或初级类型作为节点标签。\n"
+            # "例如，当你识别出一个代表个人的实体时，总是将其标记为 **人**。避免使用更具体的术语"
+            # "如数学家或科学家"
         )
     elif input_type == "relationship":
         return (
-            # "Instead of using specific and momentary types such as "
-            # "'BECAME_PROFESSOR', use more general and timeless relationship types "
-            # "like 'PROFESSOR'. However, do not sacrifice any accuracy for generality"
-            "不要使用特定和临时的类型，如成为教授，而应使用更普遍和持久的关系类型，如教授。不要为了普遍性而牺牲准确性"
+            "Instead of using specific and momentary types such as "
+            "'BECAME_PROFESSOR', use more general and timeless relationship types "
+            "like 'PROFESSOR'. However, do not sacrifice any accuracy for generality"
+            # "不要使用特定和临时的类型，如成为教授，而应使用更普遍和持久的关系类型，如教授。不要为了普遍性而牺牲准确性"
         )
     elif input_type == "property":
         return ""
@@ -316,7 +316,7 @@ def create_unstructured_prompt(
         "IMPORTANT NOTES:\n- Don't add any explanation and text.",
     ]
     base_string_parts = [
-        "你是一个高级算法，专为从文本中提取信息并以结构化格式构建知识图谱而设计。你的任务是根据用户提示从给定文本中识别实体和关系。你必须以JSON格式生成输出，包含一个列表，其中每个对象应有以下键：'head', 'head_type', 'relation', 'tail', 和 'tail_type'。'head' 键必须包含提取的实体文本，并且类型必须是用户提供的列表中的一种。",
+        "你是一个高级算法，专为从文本中提取信息并以结构化格式构建知识图谱而设计。你的任务是根据用户提示从给定文本中识别实体和关系。你必须以JSON格式生成输出，包含一个列表，其中每个对象应有以下键：'head'（头部实体）, 'head_type'（头部实体类型）, 'relation'（关系）, 'tail'（尾部实体）, 和 'tail_type'（尾部实体类型）。'head' 键必须包含提取的实体文本，并且类型必须是用户提供的列表中的一种。",
         f'"head_type" 键必须包含提取的头部实体的类型，该类型必须是 {node_labels_str} 中的一种。' if node_labels else "",
         f'"relation" 键必须包含 "head" 和 "tail" 之间的关系类型，该类型必须是 {rel_types_str} 中的一种。' if rel_types else "",
         f'"tail" 键必须表示关系中的尾部实体的文本，而 "tail_type" 键必须包含尾部实体的类型，该类型必须是 {node_labels_str} 中的一种。' if node_labels else "",
@@ -350,19 +350,19 @@ def create_unstructured_prompt(
         "in the provided example."
         "{format_instructions}\nText: {input}",
     ]
-    human_string_parts = [
-        "根据以下示例，从提供的文本中提取实体和关系。\n",
-        "使用以下实体类型，不要使用未在下方定义的其他实体："
-        "# 实体类型："
-        "{node_labels}" if node_labels else "",
-        "使用以下关系类型，不要使用未在下方定义的其他关系："
-        "# 关系类型："
-        "{rel_types}" if rel_types else "",
-        "以下是一些文本及其提取的实体和关系的示例。"
-        "{examples}\n"
-        "对于以下文本，请按照提供的示例提取实体和关系。"
-        "{format_instructions}\n文本：{input}"
-    ]
+    # human_string_parts = [
+    #     "根据以下示例，从提供的文本中提取实体和关系。\n",
+    #     "使用以下实体类型，不要使用未在下方定义的其他实体："
+    #     "# 实体类型："
+    #     "{node_labels}" if node_labels else "",
+    #     "使用以下关系类型，不要使用未在下方定义的其他关系："
+    #     "# 关系类型："
+    #     "{rel_types}" if rel_types else "",
+    #     "以下是一些文本及其提取的实体和关系的示例。"
+    #     "{examples}\n"
+    #     "对于以下文本，请按照提供的示例提取实体和关系。"
+    #     "{format_instructions}\n文本：{input}"
+    # ]
     human_prompt_string = "\n".join(filter(None, human_string_parts))
     human_prompt = PromptTemplate(
         template=human_prompt_string,
@@ -419,15 +419,15 @@ def create_simple_model(
     node_fields: Dict[str, Tuple[Any, Any]] = {
         "id": (
             str,
-            # Field(..., description="Name or human-readable unique identifier."),
-            Field(..., description="名称或人类可读的唯一标识符。"),
+            Field(..., description="Name or human-readable unique identifier."),
+            # Field(..., description="名称或人类可读的唯一标识符。"),
         ),
         "type": (
             str,
             optional_enum_field(
                 node_labels,
-                # description="The type or label of the node.",
-                description="节点的类型或标签。",
+                description="The type or label of the node.",
+                # description="节点的类型或标签。",
                 input_type="node",
                 llm_type=llm_type,
             ),
@@ -436,30 +436,26 @@ def create_simple_model(
 
     if node_properties:
         if isinstance(node_properties, list) and "id" in node_properties:
-            # raise ValueError("The node property 'id' is reserved and cannot be used.")
-            raise ValueError("保留的节点属性 'id' 不能使用。")
+            raise ValueError("The node property 'id' is reserved and cannot be used.")
         # Map True to empty array
         node_properties_mapped: List[str] = (
             [] if node_properties is True else node_properties
         )
 
         class Property(BaseModel):
-            """A single property consisting of key and value由键和值组成的单个属性"""
+            """A single property consisting of key and value"""
 
             key: str = optional_enum_field(
                 node_properties_mapped,
-                # description="Property key.",
-                description="属性键。",
+                description="Property key.",
                 input_type="property",
                 llm_type=llm_type,
             )
-            # value: str = Field(..., description="value")
-            value: str = Field(..., description="属性值")
+            value: str = Field(..., description="value")
 
         node_fields["properties"] = (
             Optional[List[Property]],
-            # Field(None, description="List of node properties"),
-            Field(None, description="节点属性列表。"),
+            Field(None, description="List of node properties"),
         )
     SimpleNode = create_model("SimpleNode", **node_fields)  # type: ignore
 
@@ -468,16 +464,14 @@ def create_simple_model(
             str,
             Field(
                 ...,
-                # description="Name or human-readable unique identifier of source node",
-                description="源节点的名称或人类可读的唯一标识符。"
+                description="Name or human-readable unique identifier of source node",
             ),
         ),
         "source_node_type": (
             str,
             optional_enum_field(
                 node_labels,
-                # description="The type or label of the source node.",
-                description="源节点的类型或标签。",
+                description="The type or label of the source node.",
                 input_type="node",
                 llm_type=llm_type,
             ),
@@ -486,16 +480,14 @@ def create_simple_model(
             str,
             Field(
                 ...,
-                # description="Name or human-readable unique identifier of target node",
-                description="目标节点的名称或人类可读的唯一标识符。",
+                description="Name or human-readable unique identifier of target node",
             ),
         ),
         "target_node_type": (
             str,
             optional_enum_field(
                 node_labels,
-                # description="The type or label of the target node.",
-                description="目标节点的类型或标签。",
+                description="The type or label of the target node.",
                 input_type="node",
                 llm_type=llm_type,
             ),
@@ -504,8 +496,7 @@ def create_simple_model(
             str,
             optional_enum_field(
                 rel_types,
-                # description="The type of the relationship.",
-                description="关系的类型。",
+                description="The type of the relationship.",
                 input_type="relationship",
                 llm_type=llm_type,
             ),
@@ -517,8 +508,7 @@ def create_simple_model(
             and "id" in relationship_properties
         ):
             raise ValueError(
-                # "The relationship property 'id' is reserved and cannot be used."
-                "保留的关系属性 'id' 不能使用。"
+                "The relationship property 'id' is reserved and cannot be used."
             )
         # Map True to empty array
         relationship_properties_mapped: List[str] = (
@@ -530,28 +520,24 @@ def create_simple_model(
 
             key: str = optional_enum_field(
                 relationship_properties_mapped,
-                # description="Property key.",
-                description="属性键。",
+                description="Property key.",
                 input_type="property",
                 llm_type=llm_type,
             )
-            value: str = Field(..., description="属性值。") #  description="value")
+            value: str = Field(..., description="value")
 
         relationship_fields["properties"] = (
             Optional[List[RelationshipProperty]],
-            # Field(None, description="List of relationship properties"),
-            Field(None, description="关系属性列表。"),
+            Field(None, description="List of relationship properties"),
         )
     SimpleRelationship = create_model("SimpleRelationship", **relationship_fields)  # type: ignore
 
     class DynamicGraph(_Graph):
         """Represents a graph document consisting of nodes and relationships."""
 
-        # nodes: Optional[List[SimpleNode]] = Field(description=description="List of nodes")  # type: ignore
-        nodes: Optional[List[SimpleNode]] = Field(description="节点列表")#description="List of nodes")  # type: ignore
+        nodes: Optional[List[SimpleNode]] = Field(description="List of nodes")  # type: ignore
         relationships: Optional[List[SimpleRelationship]] = Field(  # type: ignore
-            # description="List of relationships"
-            description="关系列表"
+            description="List of relationships"
         )
 
     return DynamicGraph
@@ -743,24 +729,16 @@ class LLMGraphTransformer:
           types.
         prompt (Optional[ChatPromptTemplate], optional): The prompt to pass to
           the LLM with additional instructions.
-          传递给大型语言模型（LLM）的提示（prompt），其中可以包含执行任务所需的额外指令。
-            如果提供了 prompt，它将指导语言模型如何理解和处理输入的文本。
         strict_mode (bool, optional): Determines whether the transformer should apply
           filtering to strictly adhere to `allowed_nodes` and `allowed_relationships`.
           Defaults to True.
-          将应用过滤，严格遵循 allowed_nodes 和 allowed_relationships 参数中定义的节点和关系类型。
-           False，则转换器可能会提取不在这些允许列表中的节点和关系类型。
         node_properties (Union[bool, List[str]]): If True, the LLM can extract any
           node properties from text. Alternatively, a list of valid properties can
           be provided for the LLM to extract, restricting extraction to those specified.
-          可以是布尔值 True： 则表示语言模型可以从文本中提取任何节点属性。
-            或一个字符串列表：字符串列表，则表示语言模型在提取时仅限于列表中指定的属性。
         relationship_properties (Union[bool, List[str]]): If True, the LLM can extract
           any relationship properties from text. Alternatively, a list of valid
           properties can be provided for the LLM to extract, restricting extraction to
           those specified.
-           True，则语言模型可以从文本中提取任何关系属性。
-           如果提供一个字符串列表，则表示语言模型在提取时仅限于列表中指定的属性。
 
     Example:
         .. code-block:: python
@@ -791,9 +769,9 @@ class LLMGraphTransformer:
         self.allowed_relationships = allowed_relationships
         self.strict_mode = strict_mode
         self._function_call = True
-        # Check if the LLM really supports structured output       # True 。最终的输出始终是一个包含键 "raw"、"parsed" 和 "parsing_error" 的字典。
+        # Check if the LLM really supports structured output
         try:
-            llm.with_structured_output(_Graph, include_raw=True)  #  这里导致了错误？\ include_raw False，则只返回解析后的结构化输出。如果在模型输出解析过程中发生错误，将会抛出异常
+            llm.with_structured_output(_Graph)
         except NotImplementedError:
             self._function_call = False
         if not self._function_call:
@@ -840,12 +818,10 @@ class LLMGraphTransformer:
         Processes a single document, transforming it into a graph document using
         an LLM based on the model's schema and constraints.
         """
-        text = document.page_content  # maybe cause erroe
+        text = document.page_content
         raw_schema = self.chain.invoke({"input": text}, config=config) # raw_schema tokenusage {'completion_tokens': 1024, 'prompt_tokens': 2170, 'total_tokens': 3194}
         if self._function_call:
-            if not isinstance(raw_schema, dict):
-                raw_schema = {'parsed': raw_schema, 'raw': raw_schema}
-            raw_schema = cast(Dict[Any, Any], raw_schema)      #  "raw"、"parsed" 和 "parsing_error" 的字典 raw_schema = {'parsed': raw_schema, 'raw': raw_schema}
+            raw_schema = cast(Dict[Any, Any], raw_schema)
             nodes, relationships = _convert_to_graph_document(raw_schema)
         else:
             nodes_set = set()
