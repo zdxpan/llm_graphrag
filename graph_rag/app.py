@@ -67,10 +67,6 @@ if RUN_LOCAL:
 from langchain_groq import ChatGroq
 from graph_rag.entities import graph_prompt_example
 
-# api_key: SecretStr
-# """The API key to use for authentication."""
-# base_url: str = MOONSHOT_SERVICE_URL_BASE
-llm = MoonshotChat(model="moonshot-v1-8k", api_key=os.environ["MOONSHOT_API_KEY"])
 class myMoonshotChat(MoonshotChat):
     def with_structured_output(self, schema, *, include_raw: bool = False, **kwargs):
         parser = PydanticOutputParser(pydantic_object=schema)
@@ -231,7 +227,7 @@ def get_response(question: str) -> str:
         str: The results of the invoked graph based question
     """
     rag = GraphRAG(llm = llm, embedding_model=huggingface_embeddings, reranker=reranker, llms = [], vector_index=vector_index)
-    search_query = rag.create_search_query(st.session_state.chat_history, question)
+    search_query = rag.create_search_query(st.session_state.chat_history[:5], question)
 
     print(f'>> 1.1 query rewrite as : {search_query}' )
 
