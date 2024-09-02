@@ -87,7 +87,7 @@ class GraphBuilder():
         docs = text_splitter.split_documents(raw_docs)
         return docs
 
-    def graph_document_text(self, text_chunks, save_dir = None, progress_bar=None):
+    def graph_document_text(self, text_chunks, save_dir = None, progress_bar=None, info_writer = None):
         """
         Uses experimental LLMGraphTransformer to convert unstructured text into a knowledge graph
 
@@ -101,8 +101,12 @@ class GraphBuilder():
                                             )
         llm_transformer_list = [LLMGraphTransformer(llm=lm_, allowed_nodes=entity_nodes ) for lm_ in self.llms]
         total_num = len(text_chunks)
-        total_num = 30
+        # total_num = 30
         graph_documents = []
+        
+        if info_writer is not None:
+            info_writer.write(f'>>> convert_to_graph_documents 有 {total_num} 片段需要处理...')
+
         print(f'>>> convert_to_graph_documents had {total_num}')
         def process_text(llm_transformer_, doc_item) -> List[GraphDocument]:
             # doc = Document(page_content=text)
@@ -132,7 +136,10 @@ class GraphBuilder():
                 if progress_bar is not  None:
                     progress_bar.progress(progres_inx/total_num)
                 progres_inx += 1
+        
         print(f'>> had {len(graph_documents)} to add in to grap databases')
+        if info_writer is not None:
+            info_writer.write(f'>>> convert_to_graph_documents 实际处理完成 {len(graph_documents)} 个知识结构！！！')
         self.graph.add_graph_documents(
             graph_documents,
             baseEntityLabel=True,

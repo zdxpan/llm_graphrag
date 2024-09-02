@@ -291,7 +291,7 @@ class GraphRAG():
             unstructured_data_score = self.reranker.bqe_rerank(question, unstructured_data)
             unstructured_data = sorted(list(zip(unstructured_data, unstructured_data_score)), key=lambda x: x[1], reverse=True)
             unstructured_data = [it[0] for it in unstructured_data]
-            unstructured_data = unstructured_data[:5]  # toomuch
+            unstructured_data = unstructured_data[:6]  # toomuch
         print(f'>> 2 query from vector_index get {len(unstructured_data)} ')
         structured_data = self.structured_retriever(question)
         final_data = f"""Structured data:

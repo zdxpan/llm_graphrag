@@ -67,6 +67,10 @@ if RUN_LOCAL:
 from langchain_groq import ChatGroq
 from graph_rag.entities import graph_prompt_example
 
+# api_key: SecretStr
+# """The API key to use for authentication."""
+# base_url: str = MOONSHOT_SERVICE_URL_BASE
+llm = MoonshotChat(model="moonshot-v1-8k", api_key=os.environ["MOONSHOT_API_KEY"])
 class myMoonshotChat(MoonshotChat):
     def with_structured_output(self, schema, *, include_raw: bool = False, **kwargs):
         parser = PydanticOutputParser(pydantic_object=schema)
@@ -110,7 +114,7 @@ class myMoonshotChat4Graph(MoonshotChat):
         return chain
 
 device = 'mps'
-llm = myMoonshotChat()   # llm = MoonshotChat()
+llm = myMoonshotChat()   # llm = MoonshotChat() llm = MoonshotChat(client="moonshot", api_key=os.environ["MOONSHOT_API_KEY"])
 llm1 = myMoonshotChat4Graph()
 llm2 =  myMoonshotChat4Graph(api_key=os.environ["MOONSHOT_API_KEY2"])
 llm3 =  myMoonshotChat4Graph(api_key=os.environ["MOONSHOT_API_KEY3"])
@@ -226,7 +230,7 @@ def get_response(question: str) -> str:
     Returns:
         str: The results of the invoked graph based question
     """
-    rag = GraphRAG(llm = llm, embedding_model=huggingface_embeddings, reranker=reranker, llms = llms, vector_index=vector_index)
+    rag = GraphRAG(llm = llm, embedding_model=huggingface_embeddings, reranker=reranker, llms = [], vector_index=vector_index)
     search_query = rag.create_search_query(st.session_state.chat_history, question)
 
     print(f'>> 1.1 query rewrite as : {search_query}' )
@@ -238,7 +242,8 @@ def get_response(question: str) -> str:
     Use natural language and be concise.
     Answer:"""
 
-    template = """使用中文、自然语言并保持简洁，且仅根据以下内容回答问题， 内容:
+    # template = """使用自然语言简洁回答，并且只能根据以下内容回答问题，引用内容并总结回答， 内容:
+    template = """只根据以下内容回答问题，引用内容并总结回答问题， 内容:
     {context}
 
     问题: {question}
@@ -289,7 +294,7 @@ def init_ui():
          # Add the current chat to the chat history
         st.session_state.chat_history.append(HumanMessage(content=user_query))
         st.session_state.chat_history.append(AIMessage(content=response))
-        st.session_state.chat_history.append(recall_context)
+        # st.session_state.chat_history.append(recall_context)
 
     # Print the chat history
     for message in st.session_state.chat_history:
@@ -299,10 +304,10 @@ def init_ui():
         if isinstance(message, AIMessage):
             with st.chat_message("AI"):
                 st.write(message.content)
-        if isinstance(message, str):  # TODO ,this is bad
+        if isinstance(recall_context, str) and len(recall_context) > 10:  # TODO ,this is bad
             with st.chat_message("recall content"):
                 # print('>> message is ', message)
-                for _str_ms in message.split('Unstructured data:'):
+                for _str_ms in recall_context.split('Unstructured data:'):
                     st.write(_str_ms)
 
     with st.sidebar:
@@ -319,6 +324,8 @@ def init_ui():
             "Add a Doc :page_facing_up:", type=["txt", 'pdf', 'docx'], key=st.session_state["file_uploader_key"]
         )
         rag_documents = None
+        local_files = os.listdir("uploads")
+        st.warning(f"已上传知识 列表: {local_files}")
         if uploaded_file is not None:
             rag_name = uploaded_file.name.split(".")[0]
             file_type = uploaded_file.type
@@ -327,35 +334,38 @@ def init_ui():
             save_file_name = uploaded_file.name
             file_path = os.path.join("uploads", save_file_name)
             print(f'>> the upload file type is {file_type} rag_name is {rag_name} and upfile is :{uploaded_file} {type(file_type)} save name is {file_path}')
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-                st.success(f"已保存文件: {file_path}")
-            # 创建一个按钮，并指定on_click回调函数
-            load_button = st.sidebar.button("Load Document Content")
-            if load_button:
-                # build vector
-                # if f"{rag_name}_uploaded" not in st.session_state:
-                if 'text/plain' in file_type: # text/plain
-                    # rag_documents: List[Document] = reader.read_from_object(uploaded_file)
-                    rag_documents = TextLoader(file_path).load()
-                elif 'pdf' in file_type:
-                    reader = PyPDFLoader(file_path)
-                    rag_documents: List[Document] = reader.load()
-                elif 'word' in file_type:
-                    loader = Docx2txtLoader(file_path)
-                    rag_documents: List[Document] = loader.load()
-                else:
-                    raise TypeError('not surpport file type')
+            if os.path.exists(file_path):
+                st.warning(f"文件已存在，请勿重复上传！！！")
+            else:
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                    st.success(f"已保存文件: {file_path}")
+                # 创建一个按钮，并指定on_click回调函数
+                load_button = st.sidebar.button("Load Document Content")
+                if load_button:
+                    # build vector
+                    # if f"{rag_name}_uploaded" not in st.session_state:
+                    if 'text/plain' in file_type: # text/plain
+                        # rag_documents: List[Document] = reader.read_from_object(uploaded_file)
+                        rag_documents = TextLoader(file_path).load()
+                    elif 'pdf' in file_type:
+                        reader = PyPDFLoader(file_path)
+                        rag_documents: List[Document] = reader.load()
+                    elif 'word' in file_type:
+                        loader = Docx2txtLoader(file_path)
+                        rag_documents: List[Document] = loader.load()
+                    else:
+                        raise TypeError('not surpport file type')
 
-                graph_builder = GraphBuilder(llm=llm, llms=llms)
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                text_chunks = graph_builder.chunk_document_text(rag_documents, chunk_size=700, chunk_overlap=80)
-                # index = VectorStoreIndex.from_documents(text_chunks)  # optimize use GPU  # need a llm
-                if text_chunks is not None:
-                    graph_builder.graph_document_text(text_chunks=text_chunks, progress_bar = progress_bar)
-                    status_text.text("Complete build kerword of uploaded document")
-                progress_bar.progress(3/3)
+                    graph_builder = GraphBuilder(llm=llm, llms=llms)
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    text_chunks = graph_builder.chunk_document_text(rag_documents, chunk_size=700, chunk_overlap=80)
+                    # index = VectorStoreIndex.from_documents(text_chunks)  # optimize use GPU  # need a llm
+                    if text_chunks is not None:
+                        graph_builder.graph_document_text(text_chunks=text_chunks, progress_bar = progress_bar, info_writer = status_text)
+                        status_text.text("Complete build kerword of uploaded document")
+                    progress_bar.progress(3/3)
 
 
             if f"{rag_name}_uploaded" not in st.session_state:
@@ -384,7 +394,7 @@ def init_ui():
             pass
 
         # with col2:
-        user_input = st.text_input("确认重置知识库y or n:", "")
+        user_input = st.text_input("确认重置知识库，请联系管理员密码重置，因为太烧钱了 y or n:", "")
         if st.button("Reset Graph") and user_input == "yes123":
             print('>> reset_graph databases!!!')
             reset_graph()
