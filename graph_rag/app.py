@@ -215,7 +215,7 @@ def reset_graph():
     graph_builder = GraphBuilder(llm = llm)
     graph_builder.reset_graph()
 
-def get_response(question: str) -> str:
+def get_response(question: str, option:str) -> str:
     """
     For the given question will formulate a search query and use a custom GraphRAG retriever 
     to fetch related content from the knowledge graph. 
@@ -226,17 +226,11 @@ def get_response(question: str) -> str:
     Returns:
         str: The results of the invoked graph based question
     """
+    print(">> 1.0 option is : ", option)
     rag = GraphRAG(llm = llm, embedding_model=huggingface_embeddings, reranker=reranker, llms = [], vector_index=vector_index)
-    search_query = rag.create_search_query(st.session_state.chat_history[:5], question)
+    search_query = rag.create_search_query(st.session_state.chat_history[-5:], question)
 
     print(f'>> 1.1 query rewrite as : {search_query}' )
-
-    template = """Answer the question based only on the following context:
-    {context}
-
-    Question: {question}
-    Use natural language and be concise.
-    Answer:"""
 
     # template = """使用自然语言简洁回答，并且只能根据以下内容回答问题，引用内容并总结回答， 内容:
     template = """只根据以下内容回答问题，引用内容并总结回答问题， 内容:
@@ -248,7 +242,7 @@ def get_response(question: str) -> str:
     prompt = ChatPromptTemplate.from_template(template)
 
     # recall_context = rag.retriever(search_query)
-    recall_context = rag.retriever(question)
+    recall_context = rag.retriever(question) if option == '本地知识库助手' else ''
     def hook_retriever(search_query):
         return recall_context
 
@@ -264,6 +258,13 @@ def get_response(question: str) -> str:
         | llm
         | StrOutputParser()
     )
+    if option != '本地知识库助手':
+        prompt = ChatPromptTemplate.from_template('根据用户问题进行回答:{question}')
+        chain = (
+            prompt
+            | llm
+            | StrOutputParser()
+        )
 
     # Using invoke method to get response
     return chain.invoke({"chat_history": st.session_state.chat_history, "question": question}), recall_context
@@ -277,36 +278,13 @@ def init_ui():
     Primary entry point for the app. Creates the chat interface that interacts with the LLM. 
     """
 
-    # Initialise session state
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = [
-            AIMessage(content="你好, 我是一个智能助手. 有问题请问我！")
-        ]
-
-    user_query = st.chat_input("Ask a question....")
-    if user_query is not None and user_query != "":
-        response, recall_context = get_response(user_query)
-
-         # Add the current chat to the chat history
-        st.session_state.chat_history.append(HumanMessage(content=user_query))
-        st.session_state.chat_history.append(AIMessage(content=response))
-        # st.session_state.chat_history.append(recall_context)
-
-    # Print the chat history
-    for message in st.session_state.chat_history:
-        if isinstance(message, HumanMessage):
-            with st.chat_message("Human"):
-                st.write(message.content)
-        if isinstance(message, AIMessage):
-            with st.chat_message("AI"):
-                st.write(message.content)
-        if isinstance(recall_context, str) and len(recall_context) > 10:  # TODO ,this is bad
-            with st.chat_message("recall content"):
-                # print('>> message is ', message)
-                for _str_ms in recall_context.split('Unstructured data:'):
-                    st.write(_str_ms)
-
     with st.sidebar:
+        st.header("模式")
+        option = st.selectbox(
+            "AI助手模式",
+            ("本地知识库助手", "闲聊"),
+        )
+
         st.header("知识库管理")
         st.write("Below are options to populate and reset your graph database")
 
@@ -321,6 +299,7 @@ def init_ui():
         )
         rag_documents = None
         local_files = os.listdir("uploads")
+        local_files = [i for i in local_files if '.' != i[0]]
         st.warning(f"已上传知识 列表: {local_files}")
         if uploaded_file is not None:
             rag_name = uploaded_file.name.split(".")[0]
@@ -333,12 +312,12 @@ def init_ui():
             if os.path.exists(file_path):
                 st.warning(f"文件已存在，请勿重复上传！！！")
             else:
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                    st.success(f"已保存文件: {file_path}")
-                # 创建一个按钮，并指定on_click回调函数
                 load_button = st.sidebar.button("Load Document Content")
                 if load_button:
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                        st.success(f"已保存文件: {file_path}")
+                    # 创建一个按钮，并指定on_click回调函数
                     # build vector
                     # if f"{rag_name}_uploaded" not in st.session_state:
                     if 'text/plain' in file_type: # text/plain
@@ -352,6 +331,13 @@ def init_ui():
                         rag_documents: List[Document] = loader.load()
                     else:
                         raise TypeError('not surpport file type')
+                    
+                    raw_doc  = [doc.page_content for doc in rag_documents]
+                    raw_doc = '/n'.join(raw_doc)
+                    st.warning(f"读取文档实际读取片段数量: {len(raw_doc)}")
+                    if len(raw_doc) < 800:
+                        st.error(f"文档解析失败，不支持的文档类型")
+                        os.remove(file_path)
 
                     graph_builder = GraphBuilder(llm=llm, llms=llms)
                     progress_bar = st.progress(0)
@@ -394,6 +380,38 @@ def init_ui():
         if st.button("Reset Graph") and user_input == "yes123":
             print('>> reset_graph databases!!!')
             reset_graph()
+
+    # Initialise session state
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = [
+            AIMessage(content="你好, 我是一个智能助手. 有问题请问我！")
+        ]
+
+    user_query = st.chat_input("Ask a question....")
+    recall_context = ''
+    if user_query is not None and user_query != "":
+        response, recall_context = get_response(user_query, option)
+
+         # Add the current chat to the chat history
+        st.session_state.chat_history.append(HumanMessage(content=user_query))
+        st.session_state.chat_history.append(AIMessage(content=response))
+        # st.session_state.chat_history.append(recall_context)
+
+    # Print the chat history
+    for message in st.session_state.chat_history:
+        if isinstance(message, HumanMessage):
+            with st.chat_message("Human"):
+                st.write(message.content)
+        if isinstance(message, AIMessage):
+            with st.chat_message("AI"):
+                st.write(message.content)
+    if isinstance(recall_context, str) and len(recall_context) > 10:  # TODO ,this is bad
+        with st.chat_message("Recall content"):
+            # print('>> message is ', message)
+            for _str_ms in recall_context.split('Unstructured data:'):
+                
+                st.write(_str_ms)
+        recall_context = ''
 
 
 if __name__ == "__main__":

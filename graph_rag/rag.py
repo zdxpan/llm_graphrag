@@ -225,7 +225,8 @@ class GraphRAG():
         print('>> 3  entities from create_entity_extract_chain ', entities)
         if entities is None:
             return result
-        for entity in entities.names:
+        for idx, entity in enumerate(entities.names):
+            # filter some entitys
             response = self.graph.query(
                 # """CALL db.index.fulltext.queryNodes('entity', $query, {limit:2})
                 """CALL db.index.fulltext.queryNodes('keyword', $query, {limit:2})
@@ -239,7 +240,7 @@ class GraphRAG():
                 MATCH (node)<-[r]-(neighbor)
                 RETURN neighbor.id + ' - ' + type(r) + ' -> ' +  node.id AS output
                 }
-                RETURN output LIMIT 50
+                RETURN output LIMIT 20
                 """,
                 {"query": self.generate_full_text_query(entity)},
             )
