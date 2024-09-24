@@ -60,4 +60,4 @@ If you liked this consider supporting me for free by [joining my twice weekly ne
 
 Checkout my blog where I deep dive in AI and the latest innovations [Bright Journey AI](https://brightjourneyai.com/)
 
-<a href="https://buymeacoffee.com/brightjourneyai" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+<!-- <a href="https://buymeacoffee.com/brightjourneyai" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a> -->
