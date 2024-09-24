@@ -1,1 +1,1 @@
-streamlit run graph_rag/app.py --server.port  5502
+streamlit run graph_rag/app.py --server.port  5505

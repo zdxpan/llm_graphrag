@@ -2,18 +2,18 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from typing import List
 
-class Entities(BaseModel):
-    """
-    Identify and capture information about entities from text
-    """
+# class Entities(BaseModel):
+#     """
+#     Identify and capture information about entities from text
+#     """
 
-    names: List[str] = Field(
-        description=
-            "All the objects, person, organization, authors, keywords, title, abstract, institutions, citations, references, " + 
-            "figures_tables, data, methods, results, discussion, conclusion, funding, classification_codes, proper_nouns, locations, " + 
-            "time, laws_regulations, technical_terms, products_brands, species_taxonomy, codes_algorithms, statistical_indicators, " + 
-            "research_topics, or business entities that appear in the text",
-    )
+#     names: List[str] = Field(
+#         description=
+#             "All the objects, person, organization, authors, keywords, title, abstract, institutions, citations, references, " + 
+#             "figures_tables, data, methods, results, discussion, conclusion, funding, classification_codes, proper_nouns, locations, " + 
+#             "time, laws_regulations, technical_terms, products_brands, species_taxonomy, codes_algorithms, statistical_indicators, " + 
+#             "research_topics, or business entities that appear in the text",
+#     )
 class Entities(BaseModel):
     """
     从文本中识别并捕获实体的信息
@@ -96,7 +96,7 @@ graph_example = {
 }
 
 graph_prompt_example = """
-您需要根据提供的文本提取信息，并将其格式化为符合以下 JSON schema 的 JSON 实例。
+您需要根据提供的文本提取信息，禁止翻译提取信息，并将其格式化为符合给定 JSON schema 的 JSON 实例并直接输出。
 正确的格式化示例：
 {'nodes': [{'id': '陶建华', 'type': '个人'},
   {'id': '巫英才', 'type': '个人'},
@@ -112,7 +112,7 @@ graph_prompt_example = """
    'target_node_id': '第27卷/第6期/2022年6月',
    'target_node_type': '文献',
    'type': '作者'}]}
-错误的格式化，放错层级关系，缺少必要的字段，示例：
+错误的格式化，放错层级关系,示例：
  {"properties": {'nodes': [{'id': '陶建华', 'type': '个人'},
   {'id': '巫英才', 'type': '个人'},
   {'id': '多模态人机交互综述', 'type': '标题'},
@@ -123,7 +123,8 @@ graph_prompt_example = """
    'target_node_id': '多模态人机交互综述',
    'target_node_type': '标题',
    'type': '作者'}]}}
-,
+缺少必要的字段，以及在输出结果前加了json:
+json
 {'nodes': [{'id': '陶建华', 'type': '个人'},
   {'id': '巫英才', 'type': '个人'},
   {'id': '多模态人机交互综述', 'type': '标题'},

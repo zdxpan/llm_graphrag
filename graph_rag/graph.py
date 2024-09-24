@@ -11,11 +11,11 @@ import tqdm
 from langchain.text_splitter import TokenTextSplitter
 from langchain_community.document_loaders import WikipediaLoader, YoutubeLoader, TextLoader
 from langchain_community.graphs import Neo4jGraph
-# from langchain_experimental.graph_transformers import LLMGraphTransformer
-from  graph_transformers import LLMGraphTransformer
+from langchain_experimental.graph_transformers import LLMGraphTransformer   # ollama surpport 
+# from  graph_transformers import LLMGraphTransformer                       # for moone surpport
 from langchain_core.runnables import RunnableConfig
 from langchain_community.graphs.graph_document import GraphDocument, Node, Relationship
-from langchain_openai import ChatOpenAI
+# from langchain_openai import ChatOpenAI
 # 嵌入来根据其余弦距离找到相似的潜在候选者。我们将使用Graph Data Science (GDS)库中可用的图算法
 from graphdatascience import GraphDataScience
 
@@ -58,7 +58,8 @@ class GraphBuilder():
     def __init__(self, llm=None, token_len_func = None, llms = None):
         self.graph = Neo4jGraph()
         if llm is None:
-            self.llm = ChatOpenAI(model="gpt-4o", temperature=0)
+            self.llm = None #ChatOpenAI(model="gpt-4o", temperature=0)
+            # raise error
         else:
             self.llm = llm
         self.llms = llms
@@ -99,7 +100,9 @@ class GraphBuilder():
                             # allowed_nodes=["Person", "Organization", "Company", "Award", "Product", "Characteristic"],
                             # allowed_relationships=["WORKS_FOR", "HAS_AWARD", "PRODUCED_BY", "HAS_CHARACTERISTIC"]
                                             )
-        llm_transformer_list = [LLMGraphTransformer(llm=lm_, allowed_nodes=entity_nodes ) for lm_ in self.llms]
+        llm_transformer_list = [
+            LLMGraphTransformer(
+                llm=lm_, allowed_nodes=entity_nodes, strict_mode=False ) for lm_ in self.llms ]
         total_num = len(text_chunks)
         # total_num = 30
         graph_documents = []

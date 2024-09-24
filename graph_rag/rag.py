@@ -8,11 +8,10 @@ from langchain_community.graphs import Neo4jGraph
 from langchain_community.vectorstores import Neo4jVector
 from langchain_community.vectorstores.neo4j_vector import remove_lucene_chars
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain_openai import OpenAIEmbeddings
+# from langchain_openai import ChatOpenAI
+# from langchain_openai import OpenAIEmbeddings
 from graph_rag.entities import Entities
 from langchain_core.documents import Document
-from llama_index.core.retrievers import VectorIndexRetriever # need llm
 
 from typing import List
 from langchain_core.output_parsers import PydanticOutputParser
@@ -113,7 +112,7 @@ class GraphRAG():
     def __init__(self, llm=None, embedding_model = None, reranker=None, llms = None, vector_index=None):
         self.graph = Neo4jGraph()
         if llm is None:
-            self.llm = ChatOpenAI(model="gpt-4o", temperature=0)
+            self.llm =  None#ChatOpenAI(model="gpt-4o", temperature=0)
         else:
             self.llm = llm
         self.embed_model = embedding_model
@@ -260,7 +259,8 @@ class GraphRAG():
         """
         if self.vector_index is None:
             vector_index = Neo4jVector.from_existing_graph(
-                OpenAIEmbeddings() if self.embed_model is None else self.embed_model,
+                # OpenAIEmbeddings() if self.embed_model is None else self.embed_model,
+                self.embed_model,
                 search_type="hybrid",
                 node_label="Document",
                 text_node_properties=["text"],
